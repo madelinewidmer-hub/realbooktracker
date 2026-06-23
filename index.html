@@ -805,6 +805,7 @@
 
         function renderCalendar() {
             const grid = document.getElementById('calendar-grid-target');
+            if (!grid) return;
             grid.innerHTML = '';
 
             const year = calendarPivot.getFullYear();
@@ -862,7 +863,8 @@
             if(readingHistory.length > 0) {
                 maxSitting = Math.max(...readingHistory.map(h => h.pagesRead), 0);
             }
-            document.getElementById('stat-max-sitting').innerText = `${maxSitting} pgs`;
+            const maxSittingEl = document.getElementById('stat-max-sitting');
+            if (maxSittingEl) maxSittingEl.innerText = `${maxSitting} pgs`;
 
             // Structural Rolling Averages 
             let totalPagesRead = readingHistory.reduce((sum, h) => sum + h.pagesRead, 0);
@@ -871,12 +873,16 @@
             let weeklyAverage = Math.round(totalPagesRead / 4) || 0; 
             let monthlyAverage = Math.round(totalPagesRead) || 0;
 
-            document.getElementById('stat-avg-week').innerText = weeklyAverage;
-            document.getElementById('stat-avg-month').innerText = monthlyAverage;
+            const avgWeekEl = document.getElementById('stat-avg-week');
+            const avgMonthEl = document.getElementById('stat-avg-month');
+            if (avgWeekEl) avgWeekEl.innerText = weeklyAverage;
+            if (avgMonthEl) avgMonthEl.innerText = monthlyAverage;
 
             // Fill History Archives
             const finishedContainer = document.getElementById('archive-finished-target');
             const abandonedContainer = document.getElementById('archive-abandoned-target');
+
+            if (!finishedContainer || !abandonedContainer) return;
 
             finishedContainer.innerHTML = '';
             abandonedContainer.innerHTML = '';
@@ -890,110 +896,94 @@
                 finishedBooks.forEach(b => {
                     const el = document.createElement('div');
                     el.className = 'archive-item';
-                    el.innerHTML = `
-                        <div>
-                            <strong>📖 ${b.title}</strong>
-                            <div style="font-size:0.75rem; color:var(--text-muted);">Length: ${b.totalPages} pgs</div>
-                        </div>
-                        <span style="font-size:0.75rem; font-weight:700; color:#2e5c47; background:var(--pastel-mint); padding:4px 8px; border-radius:6px;">Finished</span>
-                    `;
+                    el.innerHTML = `<span><strong>${b.title}</strong></span> <span style="color:var(--text-muted); font-size:0.8rem;">Finished: ${b.completedDate}</span>`;
                     finishedContainer.appendChild(el);
                 });
             }
 
             if(abandonedBooks.length === 0) {
-                abandonedContainer.innerHTML = `<div style="font-size:0.85rem; color:var(--text-muted); padding:4px;">No paused entries on record.</div>`;
+                abandonedContainer.innerHTML = `<div style="font-size:0.85rem; color:var(--text-muted); padding:4px;">No paused volumes cataloged yet.</div>`;
             } else {
                 abandonedBooks.forEach(b => {
                     const el = document.createElement('div');
                     el.className = 'archive-item';
-                    el.innerHTML = `
-                        <div>
-                            <strong>📁 ${b.title}</strong>
-                            <div style="font-size:0.75rem; color:var(--text-muted);">Stopped at page ${b.currentPage} / ${b.totalPages}</div>
-                        </div>
-                        <span style="font-size:0.75rem; font-weight:700; color:#733431; background:var(--pastel-rose); padding:4px 8px; border-radius:6px;">Paused</span>
-                    `;
+                    el.innerHTML = `<span><strong>${b.title}</strong> (at p. ${b.currentPage})</span> <span style="color:var(--text-muted); font-size:0.8rem;">Paused: ${b.completedDate}</span>`;
                     abandonedContainer.appendChild(el);
                 });
             }
         }
 
-        // New Rendering Method for the Reading Notes Log View
-        function renderNotesScreen() {
-            const target = document.getElementById('notes-list-target');
-            target.innerHTML = '';
+        // Modal Utility Core Controls
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = 'flex';
+        }
 
-            if (readingHistory.length === 0) {
-                target.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-muted); font-size:0.9rem;">No reading sessions logged yet. Progress records show up here.</div>`;
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        function closeOverlay(event, modalId) {
+            if (event.target === document.getElementById(modalId)) {
+                closeModal(modalId);
+            }
+        }
+
+        // Render Notes Screen List Frame
+        function renderNotesScreen() {
+            const container = document.getElementById('notes-list-target');
+            if (!container) return;
+            container.innerHTML = '';
+
+            // Map and keep track of actual index inside original readingHistory data array
+            const notesItems = readingHistory
+                .map((h, index) => ({...h, originalIndex: index}))
+                .filter(h => h.summary && h.summary.length > 0);
+
+            if (notesItems.length === 0) {
+                container.innerHTML = `<div class="note-card-empty">No reading notes saved yet. Log progress with a summary to see them here!</div>`;
                 return;
             }
 
-            // List newest reading logs first
-            const reverseLogs = [...readingHistory].reverse();
-
-            reverseLogs.forEach((log) => {
+            notesItems.forEach(item => {
                 const card = document.createElement('div');
                 card.className = 'note-card';
-                
-                // Clean calculation presentation logic for spread ranges
-                const start = log.startPage || 0;
-                const end = log.endPage || log.pagesRead;
-                const noteSnippet = log.summary ? log.summary : '<span class="note-card-empty">No reflections noted yet. Click to add some!</span>';
-
-                card.onclick = () => openNoteEditModal(log.id);
+                card.onclick = () => openEditNoteModal(item.originalIndex);
                 card.innerHTML = `
                     <div class="note-card-meta">
-                        <span>🗓️ ${log.date}</span>
-                        <strong>Pages ${start} – ${end} (+${log.pagesRead}p)</strong>
+                        <span><strong>${item.bookTitle}</strong> (p. ${item.startPage} → ${item.endPage})</span>
+                        <span>${item.date}</span>
                     </div>
-                    <div class="note-card-title">${log.bookTitle}</div>
-                    <div class="note-card-text">${noteSnippet}</div>
+                    <div class="note-card-text">"${item.summary}"</div>
                 `;
-                target.appendChild(card);
+                container.appendChild(card);
             });
         }
 
-        function openNoteEditModal(logId) {
-            const log = readingHistory.find(h => h.id === logId);
+        // Populate and trigger Note Editor Modal View Window
+        function openEditNoteModal(index) {
+            const log = readingHistory[index];
             if (!log) return;
 
-            const start = log.startPage || 0;
-            const end = log.endPage || log.pagesRead;
-
-            document.getElementById('edit-note-index').value = logId;
-            document.getElementById('edit-note-header').innerText = `${log.bookTitle}`;
-            document.getElementById('edit-note-sub').innerText = `Reflections for pages ${start} to ${end} (Read on ${log.date})`;
+            document.getElementById('edit-note-index').value = index;
+            document.getElementById('edit-note-header').innerText = `Notes for ${log.bookTitle}`;
+            document.getElementById('edit-note-sub').innerText = `Pages ${log.startPage} to ${log.endPage} read on ${log.date}`;
             document.getElementById('edit-note-body').value = log.summary || '';
             
             openModal('modal-edit-note');
         }
 
+        // Save note edits data pipeline context handler
         function saveNoteChanges() {
-            const logId = document.getElementById('edit-note-index').value;
-            const updatedText = document.getElementById('edit-note-body').value.trim();
-            
-            const logIndex = readingHistory.findIndex(h => h.id === logId);
-            if (logIndex !== -1) {
-                readingHistory[logIndex].summary = updatedText;
+            const index = document.getElementById('edit-note-index').value;
+            const newBody = document.getElementById('edit-note-body').value.trim();
+
+            if (index !== "" && readingHistory[index]) {
+                readingHistory[index].summary = newBody;
                 saveData();
                 closeModal('modal-edit-note');
                 renderNotesScreen();
+                renderActiveShelf();
             }
-        }
-
-        // Modal Utility Helpers
-        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
-        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-        function closeOverlay(e, id) { if(e.target === document.getElementById(id)) closeModal(id); }
-
-        // Progressive Web App Register Routine
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('Storyline PWA System active!', reg))
-                    .catch(err => console.log('Offline setup stalled.', err));
-            });
         }
     </script>
 </body>
