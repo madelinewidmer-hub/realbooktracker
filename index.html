@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Storyline - Reading Tracker</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        :root {
+            --bg-main: #ffffff;
+            --bg-card: #fdfbf7;
+            --text-main: #4a4a4a;
+            --text-muted: #9b9b9b;
+            --border-color: #f0eae1;
+            
+            /* Soft Pastel Palette */
+            --pastel-lavender: #e8e5f7;
+            --pastel-lavender-dark: #b8b0e6;
+            --pastel-mint: #e2f5ed;
+            --pastel-mint-dark: #a3e0c6;
+            --pastel-rose: #fceae9;
+            --pastel-rose-dark: #f0b5b3;
+            --pastel-blue: #e3f2fd;
+            --pastel-blue-dark: #90caf9;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 500px;
+            box-sizing: border-box;
+            padding: 20px 20px 80px 20px;
+            position: relative;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin: 0;
+            color: #3d3a4f;
+        }
+
+        /* Screen Panels */
+        .screen {
+            display: none;
+            width: 100%;
+        }
+        .screen.active {
+            display: block;
+        }
+
+        /* Bottom Clean Navigation */
+        .nav-bar {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 500px;
+            background: #ffffff;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 0;
+            z-index: 50;
+        }
+
+        .nav-item {
+            background: none;
+            border: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            transition: color 0.2s;
+        }
+
+        .nav-item.active {
+            color: var(--pastel-lavender-dark);
+        }
+
+        .nav-icon {
+            font-size: 1.3rem;
+        }
+
+        /* Utility Buttons */
+        .btn {
+            border: none;
+            border-radius: 12px;
+            padding: 10px 16px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+        .btn:active { transform: scale(0.98); }
+        
+        .btn-primary { background-color: var(--pastel-lavender); color: #524c7a; }
+        .btn-mint { background-color: var(--pastel-mint); color: #2e5c47; }
+        .btn-rose { background-color: var(--pastel-rose); color: #733431; }
+        .btn-blue { background-color: var(--pastel-blue); color: #24466b; }
+
+        /* Book Card Display styling */
+        .book-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 18px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.01);
+        }
+
+        .book-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin: 0 0 4px 0;
+            color: #3d3a4f;
+        }
+
+        /* Balanced Page Progress Metrics */
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin: 15px 0 6px 0;
+        }
+
+        .progress-bar-bg {
+            background: #f0ede6;
+            border-radius: 8px;
+            height: 10px;
+            width: 100%;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .progress-bar-fill {
+            background-color: var(--pastel-mint-dark);
+            height: 100%;
+            width: 0%;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .date-meta-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            background: #ffffff;
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .pace-alert-box {
+            background-color: var(--pastel-blue);
+            color: #24466b;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .book-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        /* Calendar Grid Design */
+        .calendar-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+            width: 100%;
+        }
+
+        .weekday-label {
+            text-align: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            padding: 4px 0;
+            text-transform: uppercase;
+        }
+
+        .calendar-day {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            aspect-ratio: 1;
+            padding: 4px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        .calendar-day.empty {
+            background: transparent;
+            border: none;
+        }
+
+        .day-num {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .day-pages-badge {
+            background-color: var(--pastel-lavender);
+            color: #524c7a;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-align: center;
+            border-radius: 4px;
+            padding: 2px 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Stats Blocks Layout */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 14px;
+            text-align: center;
+        }
+
+        .stat-val {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #3d3a4f;
+            margin-bottom: 4px;
+        }
+
+        .stat-lbl {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .archive-section-title {
+            font-size: 1rem;
+            font-weight: 700;
+            margin: 20px 0 10px 0;
+            color: #3d3a4f;
+            border-left: 3px solid var(--pastel-lavender-dark);
+            padding-left: 8px;
+        }
+
+        .archive-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        /* Modals Overlay Form Mechanics */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(2px);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal {
+            background: #ffffff;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 400px;
+            padding: 22px;
+            box-sizing: border-box;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        }
+
+        .modal h3 {
+            margin: 0 0 16px 0;
+            color: #3d3a4f;
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--text-main);
+        }
+
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            box-sizing: border-box;
+            background: var(--bg-card);
+            font-family: inherit;
+            font-size: 0.9rem;
+            color: var(--text-main);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            height: 80px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        /* Notes Display Specific Items */
+        .note-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .note-card:hover {
+            background: #f5f1e9;
+        }
+        .note-card-meta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+        .note-card-title {
+            font-weight: 700;
+            color: #3d3a4f;
+            margin-bottom: 4px;
+        }
+        .note-card-text {
+            font-size: 0.85rem;
+            color: var(--text-main);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-style: italic;
+        }
+        .note-card-empty {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <div id="screen-dashboard" class="screen active">
+            <header>
+                <h1>Reading Shelf</h1>
+                <button class="btn btn-primary" onclick="openModal('modal-add-book')">＋ Add Book</button>
+            </header>
+            <div id="active-shelf-target"></div>
+        </div>
+
+        <div id="screen-calendar" class="screen">
+            <header>
+                <h1>Reading Log</h1>
+            </header>
+            <div class="calendar-controls">
+                <button class="btn btn-primary" style="padding: 6px 12px;" onclick="adjustMonth(-1)">◀</button>
+                <h3 id="calendar-month-title" style="margin:0;">Month Year</h3>
+                <button class="btn btn-primary" style="padding: 6px 12px;" onclick="adjustMonth(1)">▶</button>
+            </div>
+            <div class="calendar-grid" id="calendar-grid-target"></div>
+        </div>
+
+        <div id="screen-stats" class="screen">
+            <header>
+                <h1>Insights</h1>
+            </header>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-val" id="stat-avg-week">0</div>
+                    <div class="stat-lbl">Pages / Week</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-val" id="stat-avg-month">0</div>
+                    <div class="stat-lbl">Pages / Month</div>
+                </div>
+                <div class="stat-card" style="grid-column: span 2;">
+                    <div class="stat-val" id="stat-max-sitting">0</div>
+                    <div class="stat-lbl">Record Pages in 1 Sitting</div>
+                </div>
+            </div>
+
+            <div class="archive-section-title">🏆 Completed Journey</div>
+            <div id="archive-finished-target"></div>
+
+            <div class="archive-section-title">🍂 Shelf Paused / Abandoned</div>
+            <div id="archive-abandoned-target"></div>
+        </div>
+
+        <div id="screen-notes" class="screen">
+            <header>
+                <h1>Reading Notes</h1>
+            </header>
+            <div id="notes-list-target"></div>
+        </div>
+
+        <nav class="nav-bar">
+            <button class="nav-item active" id="nav-btn-dashboard" onclick="changeScreen('dashboard')">
+                <span class="nav-icon">📖</span>
+                <span>Shelf</span>
+            </button>
+            <button class="nav-item" id="nav-btn-calendar" onclick="changeScreen('calendar')">
+                <span class="nav-icon">📅</span>
+                <span>Log</span>
+            </button>
+            <button class="nav-item" id="nav-btn-stats" onclick="changeScreen('stats')">
+                <span class="nav-icon">📊</span>
+                <span>Insights</span>
+            </button>
+            <button class="nav-item" id="nav-btn-notes" onclick="changeScreen('notes')">
+                <span class="nav-icon">📝</span>
+                <span>Notes</span>
+            </button>
+        </nav>
+
+    </div>
+
+    <div class="modal-overlay" id="modal-add-book" onclick="closeOverlay(event, 'modal-add-book')">
+        <div class="modal">
+            <h3>Add New Book Path</h3>
+            <div class="form-group">
+                <label>Book Title</label>
+                <input type="text" id="add-title" placeholder="e.g., The Great Gatsby">
+            </div>
+            <div class="form-group">
+                <label>Total Pages</label>
+                <input type="number" id="add-total" placeholder="400">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Start Date</label>
+                    <input type="date" id="add-start">
+                </div>
+                <div class="form-group">
+                    <label>Target Finish</label>
+                    <input type="date" id="add-end">
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" style="background:#e2e8f0; color:#4a5568;" onclick="closeModal('modal-add-book')">Cancel</button>
+                <button class="btn btn-mint" onclick="addNewBook()">Begin Journey</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-log-page" onclick="closeOverlay(event, 'modal-log-page')">
+        <div class="modal">
+            <h3>Update Reading Place</h3>
+            <p id="log-modal-sub" style="font-size:0.85rem; margin-top:-10px; color:var(--text-muted);"></p>
+            <input type="hidden" id="log-book-id">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Current Page I'm On Now</label>
+                    <input type="number" id="log-input-page" placeholder="Current Page">
+                </div>
+                <div class="form-group">
+                    <label>Date Read</label>
+                    <input type="date" id="log-input-date">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>What did you read about? (Optional Summary)</label>
+                <textarea id="log-input-summary" placeholder="Write down plot changes, characters, or impressions..."></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" style="background:#e2e8f0; color:#4a5568;" onclick="closeModal('modal-log-page')">Cancel</button>
+                <button class="btn btn-mint" onclick="submitProgressLog()">Save Progress</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-edit-note" onclick="closeOverlay(event, 'modal-edit-note')">
+        <div class="modal">
+            <h3 id="edit-note-header">Edit Reading Log Note</h3>
+            <p id="edit-note-sub" style="font-size:0.85rem; margin-top:-10px; color:var(--text-muted);"></p>
+            <input type="hidden" id="edit-note-index">
+            <div class="form-group">
+                <label>Your Notes & Observations</label>
+                <textarea id="edit-note-body" style="height: 150px;" placeholder="Add or rewrite more about these pages here..."></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" style="background:#e2e8f0; color:#4a5568;" onclick="closeModal('modal-edit-note')">Cancel</button>
+                <button class="btn btn-mint" onclick="saveNoteChanges()">Save Note Details</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Core State Engine
+        let library = JSON.parse(localStorage.getItem('storyline_library')) || [];
+        let readingHistory = JSON.parse(localStorage.getItem('storyline_history')) || [];
+        let calendarPivot = new Date();
+
+        window.onload = function() {
+            setFallbackFormDates();
+            renderActiveShelf();
+            renderCalendar();
+            renderAnalytics();
+            renderNotesScreen();
+        };
+
+        function setFallbackFormDates() {
+            const todayStr = new Date().toISOString().split('T')[0];
+            document.getElementById('add-start').value = todayStr;
+        }
+
+        // Screen Swapping Framework 
+        function changeScreen(screenName) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+            document.getElementById(`screen-${screenName}`).classList.add('active');
+            document.getElementById(`nav-btn-${screenName}`).classList.add('active');
+
+            if(screenName === 'calendar') renderCalendar();
+            if(screenName === 'stats') renderAnalytics();
+            if(screenName === 'notes') renderNotesScreen();
+        }
+
+        // Calculation Helpers 
+        function calculatePace(book) {
+            if (book.currentPage >= book.totalPages) return 0;
+            
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const targetEnd = new Date(book.endDate);
+            targetEnd.setHours(0,0,0,0);
+
+            const remainingPages = book.totalPages - book.currentPage;
+            
+            if (targetEnd <= today) {
+                return remainingPages; // Need to finish immediately
+            }
+
+            const timeDiff = targetEnd.getTime() - today.getTime();
+            const daysRemaining = Math.ceil(timeDiff / (1000 * 3600 * 24));
+            
+            return Math.ceil(remainingPages / (daysRemaining || 1));
+        }
+
+        // Library Storage Handlers
+        function addNewBook() {
+            const title = document.getElementById('add-title').value.trim();
+            const totalPages = parseInt(document.getElementById('add-total').value, 10);
+            const startDate = document.getElementById('add-start').value;
+            const endDate = document.getElementById('add-end').value;
+
+            if(!title || !totalPages || !startDate || !endDate) {
+                alert("Please fill in all layout blocks safely.");
+                return;
+            }
+
+            const newBook = {
+                id: 'bk_' + Date.now(),
+                title, totalPages, startDate, endDate,
+                currentPage: 0,
+                status: 'reading', // reading, finished, abandoned
+                completedDate: null
+            };
+
+            library.push(newBook);
+            saveData();
+            closeModal('modal-add-book');
+            renderActiveShelf();
+            
+            // Reset input values
+            document.getElementById('add-title').value = '';
+            document.getElementById('add-total').value = '';
+            setFallbackFormDates();
+        }
+
+        function openLogModal(bookId) {
+            const book = library.find(b => b.id === bookId);
+            if(!book) return;
+            document.getElementById('log-book-id').value = bookId;
+            document.getElementById('log-modal-sub').innerText = `Currently tracking "${book.title}" at page ${book.currentPage} out of ${book.totalPages}.`;
+            document.getElementById('log-input-page').value = book.currentPage || '';
+            document.getElementById('log-input-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('log-input-summary').value = '';
+            openModal('modal-log-page');
+        }
+
+        function submitProgressLog() {
+            const id = document.getElementById('log-book-id').value;
+            const nextP = parseInt(document.getElementById('log-input-page').value, 10);
+            const chosenDate = document.getElementById('log-input-date').value;
+            const summaryText = document.getElementById('log-input-summary').value.trim();
+            const book = library.find(b => b.id === id);
+
+            if(!book || isNaN(nextP) || nextP < 0) {
+                alert("Please enter a valid page notation.");
+                return;
+            }
+            if(nextP > book.totalPages) {
+                alert(`You can't exceed the book's limit of ${book.totalPages} pages.`);
+                return;
+            }
+            if(!chosenDate) {
+                alert("Please pick a timestamp date context.");
+                return;
+            }
+
+            // Calculate change based on chronological baseline history
+            // to allow retroactive historical injections smoothly
+            let calculatedFromPage = 0;
+            const bookLogs = readingHistory.filter(h => h.bookId === book.id).sort((a,b) => new Date(a.date) - new Date(b.date));
+            
+            // Find what the last known page read was before this newly submitted log entry's date
+            bookLogs.forEach(log => {
+                if(log.date <= chosenDate && log.endPage > calculatedFromPage) {
+                    calculatedFromPage = log.endPage;
+                }
+            });
+
+            const netChange = nextP - calculatedFromPage;
+
+            if(netChange > 0) {
+                // Record parameters with added bookId, start page, end page tracking, and summary notes strings
+                readingHistory.push({
+                    id: 'log_' + Date.now() + Math.random().toString(36).substr(2, 5),
+                    bookId: book.id,
+                    bookTitle: book.title,
+                    date: chosenDate,
+                    pagesRead: netChange,
+                    startPage: calculatedFromPage,
+                    endPage: nextP,
+                    summary: summaryText
+                });
+                
+                // Keep history cleanly sequenced by layout dates
+                readingHistory.sort((a,b) => new Date(a.date) - new Date(b.date));
+            }
+
+            // Sync structural current state value forward safely
+            if(nextP > book.currentPage) {
+                book.currentPage = nextP;
+            }
+
+            // Automated status check tracking engine
+            if(book.currentPage === book.totalPages) {
+                book.status = 'finished';
+                book.completedDate = chosenDate;
+                alert(`🎉 Congratulations! You fully completed reading "${book.title}"!`);
+            }
+
+            saveData();
+            closeModal('modal-log-page');
+            renderActiveShelf();
+        }
+
+        function abandonBook(id) {
+            if(confirm("Are you sure you want to stop tracking this book path?")) {
+                library = library.map(b => {
+                    if(b.id === id) {
+                        b.status = 'abandoned';
+                        b.completedDate = new Date().toISOString().split('T')[0];
+                    }
+                    return b;
+                });
+                saveData();
+                renderActiveShelf();
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('storyline_library', JSON.stringify(library));
+            localStorage.setItem('storyline_history', JSON.stringify(readingHistory));
+        }
+
+        // Active UI Render Pipelines
+        function renderActiveShelf() {
+            const container = document.getElementById('active-shelf-target');
+            container.innerHTML = '';
+
+            const activeBooks = library.filter(b => b.status === 'reading');
+
+            if(activeBooks.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align:center; padding:40px; color:var(--text-muted);">
+                        <p style="font-size:3rem; margin:0;">📚</p>
+                        <p style="font-weight:600; margin-top:10px;">Your active shelf is empty.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            activeBooks.forEach(b => {
+                const pct = b.totalPages > 0 ? ((b.currentPage / b.totalPages) * 100).toFixed(1) : 0;
+                const dailyGoal = calculatePace(b);
+                
+                const card = document.createElement('div');
+                card.className = 'book-card';
+                card.innerHTML = `
+                    <h2 class="book-title">${b.title}</h2>
+                    
+                    <div class="progress-header">
+                        <span>Read: <strong>${b.currentPage}</strong> pgs</span>
+                        <span>Total: <strong>${b.totalPages}</strong> pgs (${pct}%)</span>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" style="width: ${pct}%"></div>
+                    </div>
+
+                    <div class="date-meta-row">
+                        <span>🗓️ Started: ${b.startDate}</span>
+                        <span>🎯 Deadline: ${b.endDate}</span>
+                    </div>
+
+                    ${dailyGoal > 0 ? `<div class="pace-alert-box">📖 Read <strong>${dailyGoal} pages</strong> today to finish on time!</div>` : ''}
+
+                    <div class="book-actions">
+                        <button class="btn btn-mint" style="flex:2;" onclick="openLogModal('${b.id}')">✏️ Log Current Page</button>
+                        <button class="btn btn-rose" style="flex:1;" onclick="abandonBook('${b.id}')">Pause</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Elegant Calendar Operations Engine
+        function adjustMonth(dir) {
+            calendarPivot.setMonth(calendarPivot.getMonth() + dir);
+            renderCalendar();
+        }
+
+        function renderCalendar() {
+            const grid = document.getElementById('calendar-grid-target');
+            grid.innerHTML = '';
+
+            const year = calendarPivot.getFullYear();
+            const month = calendarPivot.getMonth();
+
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            document.getElementById('calendar-month-title').innerText = `${monthNames[month]} ${year}`;
+
+            const labels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+            labels.forEach(l => {
+                const item = document.createElement('div');
+                item.className = 'weekday-label';
+                item.innerText = l;
+                grid.appendChild(item);
+            });
+
+            const firstDayIndex = new Date(year, month, 1).getDay();
+            const totalDays = new Date(year, month + 1, 0).getDate();
+
+            for (let i = 0; i < firstDayIndex; i++) {
+                const empty = document.createElement('div');
+                empty.className = 'calendar-day empty';
+                grid.appendChild(empty);
+            }
+
+            // Consolidate logs per date layout matrix 
+            const dailyLogsMap = {};
+            readingHistory.forEach(log => {
+                dailyLogsMap[log.date] = (dailyLogsMap[log.date] || 0) + log.pagesRead;
+            });
+
+            for (let day = 1; day <= totalDays; day++) {
+                const cell = document.createElement('div');
+                cell.className = 'calendar-day';
+
+                const padDay = day.toString().padStart(2, '0');
+                const padMonth = (month + 1).toString().padStart(2, '0');
+                const matchStr = `${year}-${padMonth}-${padDay}`;
+
+                const pagesReadOnThisDate = dailyLogsMap[matchStr] || 0;
+
+                cell.innerHTML = `<span class="day-num">${day}</span>`;
+                if(pagesReadOnThisDate > 0) {
+                    cell.innerHTML += `<div class="day-pages-badge">+${pagesReadOnThisDate}p</div>`;
+                }
+
+                grid.appendChild(cell);
+            }
+        }
+
+        // Analytics & Archive Management Tab Display
+        function renderAnalytics() {
+            // Calculate Maximum in 1 Sitting
+            let maxSitting = 0;
+            if(readingHistory.length > 0) {
+                maxSitting = Math.max(...readingHistory.map(h => h.pagesRead), 0);
+            }
+            document.getElementById('stat-max-sitting').innerText = `${maxSitting} pgs`;
+
+            // Structural Rolling Averages 
+            let totalPagesRead = readingHistory.reduce((sum, h) => sum + h.pagesRead, 0);
+            
+            // Math estimates for Weeks and Months
+            let weeklyAverage = Math.round(totalPagesRead / 4) || 0; 
+            let monthlyAverage = Math.round(totalPagesRead) || 0;
+
+            document.getElementById('stat-avg-week').innerText = weeklyAverage;
+            document.getElementById('stat-avg-month').innerText = monthlyAverage;
+
+            // Fill History Archives
+            const finishedContainer = document.getElementById('archive-finished-target');
+            const abandonedContainer = document.getElementById('archive-abandoned-target');
+
+            finishedContainer.innerHTML = '';
+            abandonedContainer.innerHTML = '';
+
+            const finishedBooks = library.filter(b => b.status === 'finished');
+            const abandonedBooks = library.filter(b => b.status === 'abandoned');
+
+            if(finishedBooks.length === 0) {
+                finishedContainer.innerHTML = `<div style="font-size:0.85rem; color:var(--text-muted); padding:4px;">No finished volumes cataloged yet.</div>`;
+            } else {
+                finishedBooks.forEach(b => {
+                    const el = document.createElement('div');
+                    el.className = 'archive-item';
+                    el.innerHTML = `
+                        <div>
+                            <strong>📖 ${b.title}</strong>
+                            <div style="font-size:0.75rem; color:var(--text-muted);">Length: ${b.totalPages} pgs</div>
+                        </div>
+                        <span style="font-size:0.75rem; font-weight:700; color:#2e5c47; background:var(--pastel-mint); padding:4px 8px; border-radius:6px;">Finished</span>
+                    `;
+                    finishedContainer.appendChild(el);
+                });
+            }
+
+            if(abandonedBooks.length === 0) {
+                abandonedContainer.innerHTML = `<div style="font-size:0.85rem; color:var(--text-muted); padding:4px;">No paused entries on record.</div>`;
+            } else {
+                abandonedBooks.forEach(b => {
+                    const el = document.createElement('div');
+                    el.className = 'archive-item';
+                    el.innerHTML = `
+                        <div>
+                            <strong>📁 ${b.title}</strong>
+                            <div style="font-size:0.75rem; color:var(--text-muted);">Stopped at page ${b.currentPage} / ${b.totalPages}</div>
+                        </div>
+                        <span style="font-size:0.75rem; font-weight:700; color:#733431; background:var(--pastel-rose); padding:4px 8px; border-radius:6px;">Paused</span>
+                    `;
+                    abandonedContainer.appendChild(el);
+                });
+            }
+        }
+
+        // New Rendering Method for the Reading Notes Log View
+        function renderNotesScreen() {
+            const target = document.getElementById('notes-list-target');
+            target.innerHTML = '';
+
+            if (readingHistory.length === 0) {
+                target.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-muted); font-size:0.9rem;">No reading sessions logged yet. Progress records show up here.</div>`;
+                return;
+            }
+
+            // List newest reading logs first
+            const reverseLogs = [...readingHistory].reverse();
+
+            reverseLogs.forEach((log) => {
+                const card = document.createElement('div');
+                card.className = 'note-card';
+                
+                // Clean calculation presentation logic for spread ranges
+                const start = log.startPage || 0;
+                const end = log.endPage || log.pagesRead;
+                const noteSnippet = log.summary ? log.summary : '<span class="note-card-empty">No reflections noted yet. Click to add some!</span>';
+
+                card.onclick = () => openNoteEditModal(log.id);
+                card.innerHTML = `
+                    <div class="note-card-meta">
+                        <span>🗓️ ${log.date}</span>
+                        <strong>Pages ${start} – ${end} (+${log.pagesRead}p)</strong>
+                    </div>
+                    <div class="note-card-title">${log.bookTitle}</div>
+                    <div class="note-card-text">${noteSnippet}</div>
+                `;
+                target.appendChild(card);
+            });
+        }
+
+        function openNoteEditModal(logId) {
+            const log = readingHistory.find(h => h.id === logId);
+            if (!log) return;
+
+            const start = log.startPage || 0;
+            const end = log.endPage || log.pagesRead;
+
+            document.getElementById('edit-note-index').value = logId;
+            document.getElementById('edit-note-header').innerText = `${log.bookTitle}`;
+            document.getElementById('edit-note-sub').innerText = `Reflections for pages ${start} to ${end} (Read on ${log.date})`;
+            document.getElementById('edit-note-body').value = log.summary || '';
+            
+            openModal('modal-edit-note');
+        }
+
+        function saveNoteChanges() {
+            const logId = document.getElementById('edit-note-index').value;
+            const updatedText = document.getElementById('edit-note-body').value.trim();
+            
+            const logIndex = readingHistory.findIndex(h => h.id === logId);
+            if (logIndex !== -1) {
+                readingHistory[logIndex].summary = updatedText;
+                saveData();
+                closeModal('modal-edit-note');
+                renderNotesScreen();
+            }
+        }
+
+        // Modal Utility Helpers
+        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+        function closeOverlay(e, id) { if(e.target === document.getElementById(id)) closeModal(id); }
+
+        // Progressive Web App Register Routine
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Storyline PWA System active!', reg))
+                    .catch(err => console.log('Offline setup stalled.', err));
+            });
+        }
+    </script>
+</body>
+</html>
